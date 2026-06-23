@@ -1,36 +1,143 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Website Graph Explorer
+
+An interactive visualization tool that crawls any website and maps its entire page structure as a force-directed graph — inspired by [npmgraph](https://npmgraph.js.org).
+
+Paste a URL, explore how every page connects.
+
+---
+
+## Features
+
+- Crawl any public website up to a configurable depth
+- Visualize page structure as an interactive force-directed graph
+- Click any node to highlight its connected pages
+- Node colors indicate HTTP status (200, 301, 404)
+- Zoom, pan, and drag nodes freely
+- Shareable URL — every graph gets a unique link
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | Next.js 15, TypeScript, Tailwind CSS |
+| Graph | D3.js, Dagre |
+| State | Zustand |
+| Crawler | Playwright |
+| Queue | BullMQ |
+| Cache | Redis |
+| Validation | Zod |
+
+---
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 20+
+- Bun
+- Docker (for Redis)
+
+### Installation
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/yourusername/website-graph-explorer
+cd website-graph-explorer
+bun install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Start Redis
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+docker run -d -p 6379:6379 --name graph-redis redis:7-alpine
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Setup environment
 
-## Learn More
+```bash
+cp .env.example .env.local
+```
 
-To learn more about Next.js, take a look at the following resources:
+```env
+REDIS_URL=redis://localhost:6379
+NODE_ENV=development
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Run the app
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+# terminal 1 — Next.js app
+bun dev
 
-## Deploy on Vercel
+# terminal 2 — crawler worker
+bun run src/worker/index.ts
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Open [http://localhost:3000](http://localhost:3000)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## How It Works
+
+```
+User pastes URL
+      ↓
+API validates + enqueues crawl job
+      ↓
+Playwright worker visits every page
+      ↓
+Raw data normalized into nodes + edges
+      ↓
+Result stored in Redis
+      ↓
+D3.js renders interactive graph
+```
+
+---
+
+## Project Structure
+
+```
+src/
+├── app/
+│   ├── api/crawl/        ← REST API routes
+│   └── graph/            ← graph view page
+├── components/           ← UI components
+├── lib/                  ← crawler, queue, redis
+├── store/                ← Zustand stores
+├── hooks/                ← custom hooks
+├── types/                ← TypeScript types
+└── worker/               ← BullMQ worker process
+```
+
+---
+
+## Architecture
+
+```
+Browser (Next.js)
+      ↓  POST /api/crawl
+API Route (Next.js)
+      ↓  enqueue job
+BullMQ Queue
+      ↓  pick up job
+Playwright Worker
+      ↓  crawl pages
+Graph Normalizer
+      ↓  store result
+Redis Cache
+      ↓  fetch result
+D3.js Graph
+```
+
+---
+
+
+
+## Author
+
+Built by [Gaurav Singh](https://github.com/gauravrajput4201)
+
+---
+
