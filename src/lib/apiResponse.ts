@@ -1,4 +1,4 @@
-export interface ApiResponse<T = any> {
+export interface IApiResponse<T = any> {
   success: boolean;
   code: number;
   data: T | null;
@@ -10,11 +10,12 @@ export function ApiResponse<T = any>(
   code: number,
   data?: T,
   message?: string
-): ApiResponse<T> {
-  return {
+): Response {
+  const body: IApiResponse<T> = {
     success,
     code,
-    data: data || null,
+    data: data ?? null,
     ...(message && { message }),
   };
+  return Response.json(body, { status: code });
 }
